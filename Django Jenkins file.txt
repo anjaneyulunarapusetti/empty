@@ -1,0 +1,42 @@
+pipeline {
+   agent any
+
+   environment {
+       registry = "srikanthbattula/djangoapp"
+       registryCredential = 'dockerhub_id'
+   }
+
+   stages {
+       stage('Checkout') {
+           steps {
+               checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Kanishk-ALM/Django-Postgres.git']])
+           }
+       }
+
+       stage('Build and Push Image') {
+           steps {
+               script {
+                   // Build and push your Docker image
+                   dockerImage = docker.build registry
+                   docker.withRegistry('', registryCredential) {
+                       dockerImage.push()
+                   }
+               }
+           }
+       }
+
+       stage('Deploy Using Docker Compose') {
+           steps {
+               // Start services using Docker Compose
+               sh 'docker-compose up -d'
+           }
+       }
+
+       stage('Run Tests') {
+           steps {
+               // Run tests for the Django application
+               sh 'docker-compose exec -T djangoapp python manage.py test'
+           }
+       }
+   }
+}
